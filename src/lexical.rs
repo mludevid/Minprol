@@ -1,7 +1,6 @@
 use super::token::{Token, bin_op::BinOp, special_character::SpecialCharacter, types::Type, keywords::Keyword};
-use super::scope::Scope;
 
-pub fn create_tokens(scope: &mut Scope, expression: String) -> Vec<Token> {
+pub fn create_tokens(expression: String) -> Vec<Token> {
     let mut token: Vec<Token> = Vec::new();
 
     let mut i = 0;
@@ -11,7 +10,7 @@ pub fn create_tokens(scope: &mut Scope, expression: String) -> Vec<Token> {
             let x = parse_number(&expression, &mut i);
             token.push(x);
         } else if character.chars().next().expect("falat error. Should never happen!").is_alphabetic() {
-            let s = parse_string(scope, &expression, &mut i);
+            let s = parse_string(&expression, &mut i);
             token.push(s);
         } else if character == "=" {
             token.push(Token::TtSpecialCharacter(SpecialCharacter::TtEqual));
@@ -122,7 +121,7 @@ fn parse_number(expression: &String, i: &mut usize) -> Token {
     }
 }
 
-fn parse_string<'a>(scope: &'a mut Scope, expression: &'a String, i: &mut usize) -> Token {
+fn parse_string<'a>(expression: &'a String, i: &mut usize) -> Token {
     let start = *i;
     *i += 1;
 
@@ -140,12 +139,13 @@ fn parse_string<'a>(scope: &'a mut Scope, expression: &'a String, i: &mut usize)
         return Token::TtKeyword(Keyword::TtFn);
     }
 
-    let id = match scope.get_instance_id(&expression[start..*i]) {
-        Some(i) => *i,
-        None => scope.add_instance_name(&expression[start..*i])
-    };
+    if &expression[start..*i] == "let" {
+        *i -= 1;
+        
+        return Token::TtKeyword(Keyword::TtLet);
+    }
 
     *i -= 1;
 
-    Token::TtIdentifier(id)
+    Token::TtName(String::from(&expression[start..=*i]))
 }

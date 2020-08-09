@@ -29,26 +29,27 @@ pub fn process_line(scope: &mut Scope, tokens: &mut TokenCursor) -> Token {
 }
 
 fn process_expression(scope: &mut Scope, tokens: &mut TokenCursor) -> Token {
-    match tokens.next() {
-        Some(Token::TtIdentifier(id)) => {
-            let i = *id;
+    match tokens.next().expect("Unexpected end.") {
+        Token::TtKeyword(Keyword::TtLet) => {
+            declare_variable(scope, tokens)
+        }
+        Token::TtKeyword(Keyword::TtFn) => {
+            declare_function(scope, tokens)
+        },
+        Token::TtName(s) => {
+            let name = s.clone();
             match tokens.next() {
                 Some(Token::TtSpecialCharacter(SpecialCharacter::TtEqual)) => {
-                    // assign value to identifier
-                    let value = process_expression(scope, tokens);
-                    scope.add_instance_value(i, value.clone());
-                    value
+                    scope.change_variable(name, process_math_sum(scope, tokens));
+                    Token::TtEmpty
                 },
                 _ => {
                     tokens.step_back();
                     tokens.step_back();
                     process_math_sum(scope, tokens)
-                },
+                }
             }
-        },
-        Some(Token::TtKeyword(Keyword::TtFn)) => {
-            process_function(scope, tokens)
-        },
+        }
         _ => {
             tokens.step_back();
             process_math_sum(scope, tokens)
@@ -56,10 +57,26 @@ fn process_expression(scope: &mut Scope, tokens: &mut TokenCursor) -> Token {
     }
 }
 
-fn process_function(scope: &mut Scope, tokens: &mut TokenCursor) -> Token {
+fn declare_variable(scope: &mut Scope, tokens: &mut TokenCursor) -> Token {
+    match tokens.next().expect("Unexpected end.") {
+        Token::TtName(s) => {
+            let name = s.clone();
+            match tokens.next().expect("Unexpected end.") {
+                Token::TtSpecialCharacter(SpecialCharacter::TtEqual) => {
+                    scope.add_variable(name, process_math_sum(scope, tokens));
+                    Token::TtEmpty
+                },
+                _ => panic!("You need to asign a value to the created variable"),
+            }
+        },
+        _ => panic!("Expected Identifier."),
+    }
+}
+
+fn declare_function(scope: &mut Scope, tokens: &mut TokenCursor) -> Token {
     // --- Get ID ---
-    let function_id = *tokens.next().expect("Unexpected end.").to_identifier();
-    let mut inputs: usize = 0;
+    let function_name = tokens.next().expect("Unexpected end.").to_name();
+    let mut inputs: Vec<Token> = Vec::new();
 
     // --- Create Function Struct ---
     let mut instructions: Vec<Token> = Vec::new();
@@ -70,15 +87,18 @@ fn process_function(scope: &mut Scope, tokens: &mut TokenCursor) -> Token {
     }
     // match inputs:
     match tokens.next().expect("Unexpected end.") {
-        Token::TtType(Type::TtI32(i)) => {
-            inputs = *i as usize;
-            match tokens.next().expect("Unexpected end.") {
-                Token::TtSpecialCharacter(SpecialCharacter::TtClosingBracket) => (),
-                _ => panic!("Expected closing bracket."),
-            }
-        },
         Token::TtSpecialCharacter(SpecialCharacter::TtClosingBracket) => (),
-        _ => panic!("Expected inputs or closing bracket."),
+        _ => {
+            tokens.step_back();
+            loop {
+                inputs.push(tokens.next().expect("Unexpected end.").clone());
+                match tokens.next().expect("Unexpected end.") {
+                    Token::TtSpecialCharacter(SpecialCharacter::TtClosingBracket) => break,
+                    Token::TtSpecialCharacter(SpecialCharacter::TtComma) => (),
+                    _ => panic!("Unexpected character."),
+                }
+            }
+        }
     }
 
     match tokens.next().expect("Unexpected end.") {
@@ -95,7 +115,7 @@ fn process_function(scope: &mut Scope, tokens: &mut TokenCursor) -> Token {
 
     // --- Asign Function Struct to ID ---
     let function = Function::new(inputs, instructions);
-    scope.add_instance_value(function_id, Token::TtFunction(function));
+    scope.add_variable(function_name, Token::TtFunction(function));
 
     Token::TtEmpty
 }
@@ -159,8 +179,8 @@ fn process_math_value(scope: &Scope, tokens: &mut TokenCursor) -> Token {
                 _ => panic!("Fatal error. Should never happen!"),
             }
         }
-        Some(Token::TtIdentifier(id)) => {
-            match scope.get_instance_value(*id).expect("Fatal error. Should not happen!") {
+        Some(Token::TtName(name)) => {
+            match scope.get_variable(name) {
                 Token::TtType(t) => Token::TtType(t.clone()),
                 Token::TtFunction(f) => call_function(scope, tokens, &f),
                 _ => panic!("Identifier is not a type"),
@@ -179,6 +199,22 @@ fn call_function(scope: &Scope, tokens: &mut TokenCursor, f: &Function) -> Token
 
     let mut inputs: Vec<Token> = Vec::new();
 
+    match tokens.next().expect("Unexpected end.") {
+        Token::TtSpecialCharacter(SpecialCharacter::TtClosingBracket) => (),
+        _ => {
+            tokens.step_back();
+            loop {
+                inputs.push(process_math_sum(scope, tokens));
+                match tokens.next().expect("Unexpected end.") {
+                    Token::TtSpecialCharacter(SpecialCharacter::TtClosingBracket) => break,
+                    Token::TtSpecialCharacter(SpecialCharacter::TtComma) => (),
+                    _ => panic!("Unexpected character."),
+                }
+            }
+        }
+    }
+
+    /*
     loop {
         match tokens.next().expect("Unexpected end.") {
             Token::TtSpecialCharacter(SpecialCharacter::TtClosingBracket) => break,
@@ -189,6 +225,7 @@ fn call_function(scope: &Scope, tokens: &mut TokenCursor, f: &Function) -> Token
             },
         }
     }
+    */
 
     f.call(inputs)
 }

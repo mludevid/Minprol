@@ -20,7 +20,7 @@ fn main() {
         println!("");
         let expression = input("minprol> ");    
 
-        let tokens = lexical::create_tokens(&mut scope, expression);
+        let tokens = lexical::create_tokens(expression);
 
         // println!("{:?}", tokens);
 

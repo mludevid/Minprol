@@ -15,10 +15,10 @@ use super::functions::Function;
 pub enum Token {
     TtEmpty,
     // TtEOL,
+    TtName(String),
     TtKeyword(Keyword),
     TtFunction(Function),
     TtType(Type),
-    TtIdentifier(usize),
     TtBinOp(BinOp),
     TtSpecialCharacter(SpecialCharacter),
 }
@@ -31,9 +31,9 @@ impl Token {
         }
     }
 
-    pub fn to_identifier(&self) -> &usize {
+    pub fn to_name(&self) -> String {
         match &self {
-            Token::TtIdentifier(s) => s,
+            Token::TtName(s) => s.clone(),
             _ => panic!("Could not convert to Identifier."),
         }
     }
