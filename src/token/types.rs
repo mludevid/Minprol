@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Type {
     TtI32(i32),
     TtI64(i64),

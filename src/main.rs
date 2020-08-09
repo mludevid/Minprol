@@ -1,22 +1,30 @@
 mod lexical;
 mod syntactic;
 mod token;
+mod scope;
+mod functions;
 
 // Key Idea: Everything is an expression
 // ; "clears" the expression
+// At the moment the language is not strongly typed and therefore it generates many runtime errors.
+// Since compilation time and runtime is the "same" in this case it does not bother me a lot.
+// But it clearly is a thing that can be improved!
 
 // Main funtion.
 // At the moment it is a loop of asking for expressions.
 // Terminal prints the result of the expression
 // Later it will accept files.
 fn main() {
+    let mut scope = scope::Scope::new();
     loop {
         println!("");
         let expression = input("minprol> ");    
 
-        let tokens = lexical::create_tokens(expression);
+        let tokens = lexical::create_tokens(&mut scope, expression);
 
-        let token = syntactic::process_tokens(tokens);
+        // println!("{:?}", tokens);
+
+        let token = syntactic::process_tokens(&mut scope, &tokens);
 
         println!("{:?}", token);
     }

@@ -1,6 +1,7 @@
-use super::token::{Token, bin_op::BinOp, special_character::SpecialCharacter, types::Type};
+use super::token::{Token, bin_op::BinOp, special_character::SpecialCharacter, types::Type, keywords::Keyword};
+use super::scope::Scope;
 
-pub fn create_tokens(expression: String) -> Vec<Token> {
+pub fn create_tokens(scope: &mut Scope, expression: String) -> Vec<Token> {
     let mut token: Vec<Token> = Vec::new();
 
     let mut i = 0;
@@ -9,6 +10,11 @@ pub fn create_tokens(expression: String) -> Vec<Token> {
         if character.chars().next().expect("Fatal error. Should never happen!").is_numeric() {
             let x = parse_number(&expression, &mut i);
             token.push(x);
+        } else if character.chars().next().expect("falat error. Should never happen!").is_alphabetic() {
+            let s = parse_string(scope, &expression, &mut i);
+            token.push(s);
+        } else if character == "=" {
+            token.push(Token::TtSpecialCharacter(SpecialCharacter::TtEqual));
         } else if character == "+" {
             token.push(Token::TtBinOp(BinOp::TtPlus));
         } else if character == "-" {
@@ -19,9 +25,17 @@ pub fn create_tokens(expression: String) -> Vec<Token> {
             token.push(Token::TtBinOp(BinOp::TtDiv));
         // TODO: Implement to the power of.
         } else if character == "(" {
-            token.push(Token::TtSpecialCharacter(SpecialCharacter::TtOpeningBracket))
+            token.push(Token::TtSpecialCharacter(SpecialCharacter::TtOpeningBracket));
         } else if character == ")" {
-            token.push(Token::TtSpecialCharacter(SpecialCharacter::TtClosingBracket))
+            token.push(Token::TtSpecialCharacter(SpecialCharacter::TtClosingBracket));
+        } else if character == "{" {
+            token.push(Token::TtSpecialCharacter(SpecialCharacter::TtOpeningCurlyBracket));
+        } else if character == "}" {
+            token.push(Token::TtSpecialCharacter(SpecialCharacter::TtClosingCurlyBracket));
+        } else if character == ";" {
+            token.push(Token::TtSpecialCharacter(SpecialCharacter::TtSemicolon));
+        } else if character == "," {
+            token.push(Token::TtSpecialCharacter(SpecialCharacter::TtComma))
         } else if character == " " {
         } else {
             // TODO: Create proper Error handling for the whole project.
@@ -106,4 +120,32 @@ fn parse_number(expression: &String, i: &mut usize) -> Token {
             return Token::TtType(Type::TtI32(expression[start..*i].parse().expect("Fatal number parsing error.")));
         }
     }
+}
+
+fn parse_string<'a>(scope: &'a mut Scope, expression: &'a String, i: &mut usize) -> Token {
+    let start = *i;
+    *i += 1;
+
+    while *i < expression.len() {
+        let character = &expression[*i..=*i];
+        if !character.chars().next().expect("Fatal error. Should never happen!").is_alphabetic() {
+            break;
+        }
+        *i += 1;
+    }
+
+    if &expression[start..*i] == "fn" {
+        *i -= 1;
+
+        return Token::TtKeyword(Keyword::TtFn);
+    }
+
+    let id = match scope.get_instance_id(&expression[start..*i]) {
+        Some(i) => *i,
+        None => scope.add_instance_name(&expression[start..*i])
+    };
+
+    *i -= 1;
+
+    Token::TtIdentifier(id)
 }

@@ -1,16 +1,24 @@
 pub mod bin_op;
 pub mod special_character;
 pub mod types;
+pub mod keywords;
 
 use bin_op::BinOp;
 use special_character::SpecialCharacter;
 use types::Type;
+use keywords::Keyword;
+use super::functions::Function;
 
 // TODO: Improve the overall structure of tokens. Especially the access to the values in the tokens.
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Token {
-    TtType(types::Type),
+    TtEmpty,
+    // TtEOL,
+    TtKeyword(Keyword),
+    TtFunction(Function),
+    TtType(Type),
+    TtIdentifier(usize),
     TtBinOp(BinOp),
     TtSpecialCharacter(SpecialCharacter),
 }
@@ -22,15 +30,22 @@ impl Token {
             _ => panic!("Could not convert to Type."),
         }
     }
+
+    pub fn to_identifier(&self) -> &usize {
+        match &self {
+            Token::TtIdentifier(s) => s,
+            _ => panic!("Could not convert to Identifier."),
+        }
+    }
 }
 
-pub struct TokenCursor {
-    tokens: Vec<Token>,
+pub struct TokenCursor<'a> {
+    tokens: &'a Vec<Token>,
     i: usize
 }
 
-impl TokenCursor {
-    pub fn new(tokens: Vec<Token>) -> TokenCursor {
+impl<'a> TokenCursor<'a> {
+    pub fn new(tokens: &Vec<Token>) -> TokenCursor {
         TokenCursor{tokens, i: 0}
     }
 
@@ -42,5 +57,9 @@ impl TokenCursor {
 
     pub fn step_back(&mut self) {
         self.i -= 1;
+    }
+
+    pub fn ended(&self) -> bool {
+        self.i >= self.tokens.len()
     }
 }
