@@ -21,37 +21,41 @@ pub fn process_tokens(scope: &mut Scope, tokens: &Vec<Token>) -> Token {
 
 pub fn process_line(scope: &mut Scope, tokens: &mut TokenCursor) -> Token {
     let mut token = process_expression(scope, tokens);
-    match tokens.next() {
-        Some(Token::TtSpecialCharacter(SpecialCharacter::TtSemicolon)) => token = Token::TtEmpty,
-        _ => tokens.step_back(), // panic!("Line should have ended."),
+    match tokens.peak() {
+        Some(Token::TtSpecialCharacter(SpecialCharacter::TtSemicolon)) => {
+            token = Token::TtEmpty;
+            tokens.step();
+        },
+        _ => (),
     }
     token
 }
 
 fn process_expression(scope: &mut Scope, tokens: &mut TokenCursor) -> Token {
-    match tokens.next().expect("Unexpected end.") {
+    match tokens.peak().expect("Unexpected end.") {
         Token::TtKeyword(Keyword::TtLet) => {
+            tokens.step();
             declare_variable(scope, tokens)
         }
         Token::TtKeyword(Keyword::TtFn) => {
+            tokens.step();
             declare_function(scope, tokens)
         },
         Token::TtName(s) => {
             let name = s.clone();
-            match tokens.next() {
+            match tokens.peak_next() {
                 Some(Token::TtSpecialCharacter(SpecialCharacter::TtEqual)) => {
+                    tokens.step();
+                    tokens.step();
                     scope.change_variable(name, process_math_sum(scope, tokens));
                     Token::TtEmpty
                 },
                 _ => {
-                    tokens.step_back();
-                    tokens.step_back();
                     process_math_sum(scope, tokens)
                 }
             }
         }
         _ => {
-            tokens.step_back();
             process_math_sum(scope, tokens)
         },
     }
@@ -86,10 +90,9 @@ fn declare_function(scope: &mut Scope, tokens: &mut TokenCursor) -> Token {
         _ => panic!("Expected opening bracket."),
     }
     // match inputs:
-    match tokens.next().expect("Unexpected end.") {
-        Token::TtSpecialCharacter(SpecialCharacter::TtClosingBracket) => (),
+    match tokens.peak().expect("Unexpected end.") {
+        Token::TtSpecialCharacter(SpecialCharacter::TtClosingBracket) => tokens.step(),
         _ => {
-            tokens.step_back();
             loop {
                 inputs.push(tokens.next().expect("Unexpected end.").clone());
                 match tokens.next().expect("Unexpected end.") {
@@ -124,17 +127,18 @@ fn process_math_sum(scope: &Scope, tokens: &mut TokenCursor) -> Token {
     // ADDITION
     let mut p = process_math_mul(scope, tokens);
     
-    match tokens.next() {
+    match tokens.peak() {
         Some(Token::TtBinOp(BinOp::TtPlus)) => {
+            tokens.step();
             let p2 = process_math_sum(scope, tokens);
             p = Token::TtType(add_types(p.to_type(), p2.to_type()));
         },
         Some(Token::TtBinOp(BinOp::TtMinus)) => {
+            tokens.step();
             let p2 = process_math_sum(scope, tokens);
             p = Token::TtType(substract_types(p.to_type(), p2.to_type()));
         },
-        None => (),
-        _ => {tokens.step_back();},
+        _ => (),
     }
 
     p
@@ -144,17 +148,18 @@ fn process_math_mul(scope: &Scope, tokens: &mut TokenCursor) -> Token {
     // MULTIPLICATION
     let mut p = process_math_value(scope, tokens);
 
-    match tokens.next() {
+    match tokens.peak() {
         Some(Token::TtBinOp(BinOp::TtMul)) => {
+            tokens.step();
             let p2 = process_math_mul(scope, tokens);
             p = Token::TtType(multiply_types(p.to_type(), p2.to_type()));
-        },
+        }
         Some(Token::TtBinOp(BinOp::TtDiv)) => {
+            tokens.step();
             let p2 = process_math_mul(scope, tokens);
             p = Token::TtType(divide_types(p.to_type(), p2.to_type()));
         },
-        None => (),
-        _ => {tokens.step_back();},
+        _ => (),
     }
 
     p
@@ -199,10 +204,9 @@ fn call_function(scope: &Scope, tokens: &mut TokenCursor, f: &Function) -> Token
 
     let mut inputs: Vec<Token> = Vec::new();
 
-    match tokens.next().expect("Unexpected end.") {
-        Token::TtSpecialCharacter(SpecialCharacter::TtClosingBracket) => (),
+    match tokens.peak().expect("Unexpected end.") {
+        Token::TtSpecialCharacter(SpecialCharacter::TtClosingBracket) => tokens.step(),
         _ => {
-            tokens.step_back();
             loop {
                 inputs.push(process_math_sum(scope, tokens));
                 match tokens.next().expect("Unexpected end.") {
@@ -213,19 +217,6 @@ fn call_function(scope: &Scope, tokens: &mut TokenCursor, f: &Function) -> Token
             }
         }
     }
-
-    /*
-    loop {
-        match tokens.next().expect("Unexpected end.") {
-            Token::TtSpecialCharacter(SpecialCharacter::TtClosingBracket) => break,
-            _ => {
-                tokens.step_back();
-                let processed_input = process_math_sum(scope, tokens);
-                inputs.push(processed_input);
-            },
-        }
-    }
-    */
 
     f.call(inputs)
 }

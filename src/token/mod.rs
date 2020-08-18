@@ -55,8 +55,16 @@ impl<'a> TokenCursor<'a> {
         ret
     }
 
-    pub fn step_back(&mut self) {
-        self.i -= 1;
+    pub fn step(&mut self) {
+        self.i += 1;
+    }
+
+    pub fn peak(&self) -> Option<&Token> {
+        self.tokens.get(self.i)
+    }
+
+    pub fn peak_next(&self) -> Option<&Token> {
+        self.tokens.get(self.i + 1)
     }
 
     pub fn ended(&self) -> bool {

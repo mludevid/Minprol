@@ -11,7 +11,8 @@ It can handle `+`, `-`, `*`, `/` and `()` for I32 (`1`), I64 (`1l`), F32 (`1.0`)
 To run it you'll need the Rust compiler. You can start the interpreter by running `cargo run`.
 
 Next steps:
-- Improve TokenCursor: Peak next element instead of step_back and be able to drop past Tokens.
+- Scope can acess parent scope
+- Write test functions for everything.
 - If Else
 - Loops
 - Reform data types and add new ones like Arrays.

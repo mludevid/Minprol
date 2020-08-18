@@ -37,7 +37,6 @@ pub fn create_tokens(expression: String) -> Vec<Token> {
             token.push(Token::TtSpecialCharacter(SpecialCharacter::TtComma))
         } else if character == " " {
         } else {
-            // TODO: Create proper Error handling for the whole project.
             panic!("Character Error");
         }
 
