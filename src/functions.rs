@@ -1,6 +1,6 @@
 use super::token::Token;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Function {
     expected_inputs: Vec<Token>, // If language is strongly typed here needs to be a list of the exptected type.
     instructions: Vec<Token>,

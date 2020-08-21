@@ -11,7 +11,7 @@ use super::functions::Function;
 
 // TODO: Improve the overall structure of tokens. Especially the access to the values in the tokens.
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     TtEmpty,
     // TtEOL,

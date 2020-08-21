@@ -12,8 +12,12 @@ To run it you'll need the Rust compiler. You can start the interpreter by runnin
 
 Next steps:
 - Write test functions for everything.
+- Improve end of line handling to later be able to accept instructions over multiple lines in files.
 - If Else
 - Loops
 - Reform data types and add new ones like Arrays.
 - Improve error handeling
+
+Little improvements:
 - Improve efficiency of blocks
+- Check that function inputs are Identifiers on declaration so it panickes then instead of when calling the funciton.
