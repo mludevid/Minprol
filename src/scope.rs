@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use super::token::Token;
 
 pub struct Scope {
-    // should save parent scope to be able to access elements of higher scopes.
     variables: HashMap<String, Token>,
+    inner_scope: Option<Box<Scope>>
 
     /*
     types: HashMap<usize, Token>,
@@ -16,6 +16,8 @@ impl Scope {
     pub fn new() -> Self {
         Scope {
             variables: HashMap::new(),
+            inner_scope: None,
+
             /*
             types: HashMap::new(),
             types_name: HashMap::new(),
@@ -25,26 +27,73 @@ impl Scope {
     }
 
     pub fn add_variable(&mut self, name: String, token: Token) {
-        if self.variables.contains_key(&name) {
-            panic!("Tried to create variable twice.");
-        }
+        match &mut self.inner_scope {
+            Some(s) => s.add_variable(name, token),
+            None => {
+                if self.variables.contains_key(&name) {
+                    panic!("Tried to create variable twice.");
+                }
 
-        self.variables.insert(name, token);
+                self.variables.insert(name, token);
+            }
+        }
     }
 
-    pub fn change_variable(&mut self, name: String, token: Token) {
-        if !self.variables.contains_key(&name) {
-            panic!("Variable does not exist in this scope.");
+    pub fn change_variable(&mut self, name: String, token: Token) -> Result<(), String> {
+        match &mut self.inner_scope {
+            Some(s) => {
+                match s.change_variable(name, token.clone()) {
+                    Ok(_) => {
+                        Ok(())
+                    },
+                    Err(s) => {
+                        if !self.variables.contains_key(&s) {return Err(s)}
+                        self.variables.insert(s, token);
+                        Ok(())
+                    },
+                }
+            },
+            None => {
+                if !self.variables.contains_key(&name) {return Err(name)};
+                self.variables.insert(name, token);
+                Ok(())
+            }
         }
-
-        self.variables.insert(name, token);
     }
 
-    pub fn get_variable(&self, name: &String) -> &Token {
-        match self.variables.get(name) {
-            None => panic!("Variable does not exist yet"),
-            Some(t) => t,
+    pub fn get_variable(&self, name: &String) -> Result<&Token, ()> {
+        match &self.inner_scope {
+            Some(s) => {
+                match s.get_variable(name) {
+                    Ok(t) => Ok(t),
+                    Err(t) => {
+                        match self.variables.get(name) {
+                            None => Err(t),
+                            Some(s) => Ok(s),
+                        }
+                    }
+                }
+            },
+            None => {
+                match self.variables.get(name) {
+                    None => Err(()),
+                    Some(s) => Ok(s),
+                }
+            }
         }
+    }
+
+    pub fn create_new_inner_scope(&mut self) {
+        match &mut self.inner_scope {
+            None => {
+                self.inner_scope = Some(Box::new(Scope::new()));
+            }
+            Some(c) => c.create_new_inner_scope(),
+        }
+    }
+
+    pub fn destroy_inner_scope(&mut self) {
+        self.inner_scope = None;
     }
 
     /*

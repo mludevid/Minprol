@@ -11,9 +11,9 @@ It can handle `+`, `-`, `*`, `/` and `()` for I32 (`1`), I64 (`1l`), F32 (`1.0`)
 To run it you'll need the Rust compiler. You can start the interpreter by running `cargo run`.
 
 Next steps:
-- Scope can acess parent scope
 - Write test functions for everything.
 - If Else
 - Loops
 - Reform data types and add new ones like Arrays.
 - Improve error handeling
+- Improve efficiency of blocks

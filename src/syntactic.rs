@@ -47,7 +47,11 @@ fn process_expression(scope: &mut Scope, tokens: &mut TokenCursor) -> Token {
                 Some(Token::TtSpecialCharacter(SpecialCharacter::TtEqual)) => {
                     tokens.step();
                     tokens.step();
-                    scope.change_variable(name, process_math_sum(scope, tokens));
+                    let t = process_math_sum(scope, tokens);
+                    match scope.change_variable(name, t) {
+                        Ok(_) => (),
+                        Err(s) => panic!("Variable {} is not declared yet.", s)
+                    };
                     Token::TtEmpty
                 },
                 _ => {
@@ -67,7 +71,8 @@ fn declare_variable(scope: &mut Scope, tokens: &mut TokenCursor) -> Token {
             let name = s.clone();
             match tokens.next().expect("Unexpected end.") {
                 Token::TtSpecialCharacter(SpecialCharacter::TtEqual) => {
-                    scope.add_variable(name, process_math_sum(scope, tokens));
+                    let t = process_math_sum(scope, tokens);
+                    scope.add_variable(name, t);
                     Token::TtEmpty
                 },
                 _ => panic!("You need to asign a value to the created variable"),
@@ -123,7 +128,7 @@ fn declare_function(scope: &mut Scope, tokens: &mut TokenCursor) -> Token {
     Token::TtEmpty
 }
 
-fn process_math_sum(scope: &Scope, tokens: &mut TokenCursor) -> Token {
+fn process_math_sum(scope: &mut Scope, tokens: &mut TokenCursor) -> Token {
     // ADDITION
     let mut p = process_math_mul(scope, tokens);
     
@@ -144,7 +149,7 @@ fn process_math_sum(scope: &Scope, tokens: &mut TokenCursor) -> Token {
     p
 }
 
-fn process_math_mul(scope: &Scope, tokens: &mut TokenCursor) -> Token {
+fn process_math_mul(scope: &mut Scope, tokens: &mut TokenCursor) -> Token {
     // MULTIPLICATION
     let mut p = process_math_value(scope, tokens);
 
@@ -165,7 +170,7 @@ fn process_math_mul(scope: &Scope, tokens: &mut TokenCursor) -> Token {
     p
 }
 
-fn process_math_value(scope: &Scope, tokens: &mut TokenCursor) -> Token {
+fn process_math_value(scope: &mut Scope, tokens: &mut TokenCursor) -> Token {
     // VALUES OR (EXPRESSION) OR -VALUE
     match tokens.next() {
         Some(Token::TtType(t)) => Token::TtType(t.clone()),
@@ -181,22 +186,49 @@ fn process_math_value(scope: &Scope, tokens: &mut TokenCursor) -> Token {
             let t = process_math_value(scope, tokens);
             match t {
                 Token::TtType(i) => Token::TtType(negate_type(i)),
-                _ => panic!("Fatal error. Should never happen!"),
+                _ => panic!("You can only add types!"),
             }
         }
         Some(Token::TtName(name)) => {
-            match scope.get_variable(name) {
-                Token::TtType(t) => Token::TtType(t.clone()),
+            let t = match scope.get_variable(name) {
+                Ok(tok) => tok.clone(),
+                Err(_) => panic!("Could not find variable."),
+            };
+            match t {
+                Token::TtType(t) => Token::TtType(t),
                 Token::TtFunction(f) => call_function(scope, tokens, &f),
                 _ => panic!("Identifier is not a type"),
             }
         }
+        Some(Token::TtSpecialCharacter(SpecialCharacter::TtOpeningCurlyBracket)) => {
+            scope.create_new_inner_scope();
+            let mut counter = 1;
+            let mut instructions: Vec<Token> = Vec::new();
+            while counter > 0 {
+                match tokens.next() {
+                    None => panic!("Missing closing curly brackets"),
+                    Some(Token::TtSpecialCharacter(SpecialCharacter::TtOpeningCurlyBracket)) => {
+                        instructions.push(Token::TtSpecialCharacter(SpecialCharacter::TtOpeningCurlyBracket));
+                        counter += 1
+                    },
+                    Some(Token::TtSpecialCharacter(SpecialCharacter::TtClosingCurlyBracket)) => {
+                        instructions.push(Token::TtSpecialCharacter(SpecialCharacter::TtClosingCurlyBracket));
+                        counter -= 1
+                    },
+                    Some(t) => instructions.push(t.clone()),
+                }
+            }
+            instructions.pop(); // returns Token::TtSpecialCharacter(SpecialCharacter::TtClosingCurlyBracket)
+            let t = process_tokens(scope, &instructions);
+            scope.destroy_inner_scope();
+            t
+        },
         None => panic!("Unexpected end."),
         Some(x) => panic!("Unexpected character: {:?}", x)
     }
 }
 
-fn call_function(scope: &Scope, tokens: &mut TokenCursor, f: &Function) -> Token {
+fn call_function(scope: &mut Scope, tokens: &mut TokenCursor, f: &Function) -> Token {
     match tokens.next().expect("Unexpected end.") {
         Token::TtSpecialCharacter(SpecialCharacter::TtOpeningBracket) => (),
         _ => panic!("Expected opening bracket."),
