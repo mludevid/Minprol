@@ -33,14 +33,6 @@ pub fn process_line(scope: &mut Scope, tokens: &mut TokenCursor) -> Token {
 
 fn process_expression(scope: &mut Scope, tokens: &mut TokenCursor) -> Token {
     match tokens.peak().expect("Unexpected end.") {
-        Token::TtKeyword(Keyword::TtLet) => {
-            tokens.step();
-            declare_variable(scope, tokens)
-        }
-        Token::TtKeyword(Keyword::TtFn) => {
-            tokens.step();
-            declare_function(scope, tokens)
-        },
         Token::TtName(s) => {
             let name = s.clone();
             match tokens.peak_next() {
@@ -72,8 +64,9 @@ fn declare_variable(scope: &mut Scope, tokens: &mut TokenCursor) -> Token {
             match tokens.next().expect("Unexpected end.") {
                 Token::TtSpecialCharacter(SpecialCharacter::TtEqual) => {
                     let t = process_math_sum(scope, tokens);
-                    scope.add_variable(name, t);
-                    Token::TtEmpty
+                    scope.add_variable(name, t.clone());
+                    // Token::TtEmpty (I can imagine scenarios where this decision whould be smarter)
+                    t
                 },
                 _ => panic!("You need to asign a value to the created variable"),
             }
@@ -174,6 +167,8 @@ fn process_math_value(scope: &mut Scope, tokens: &mut TokenCursor) -> Token {
     // VALUES OR (EXPRESSION) OR -VALUE
     match tokens.next() {
         Some(Token::TtType(t)) => Token::TtType(t.clone()),
+        Some(Token::TtKeyword(Keyword::TtLet)) => declare_variable(scope, tokens),
+        Some(Token::TtKeyword(Keyword::TtFn)) => declare_function(scope, tokens),
         Some(Token::TtSpecialCharacter(SpecialCharacter::TtOpeningBracket)) => {
             let value = process_math_sum(scope, tokens);
             match tokens.next() {

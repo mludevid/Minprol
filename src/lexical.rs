@@ -144,6 +144,18 @@ fn parse_string<'a>(expression: &'a String, i: &mut usize) -> Token {
         return Token::TtKeyword(Keyword::TtLet);
     }
 
+    if &expression[start..*i] == "if" {
+        *i -= 1;
+
+        return Token::TtKeyword(Keyword::TtIf);
+    }
+
+    if &expression[start..*i] == "else" {
+        *i -= 1;
+
+        return Token::TtKeyword(Keyword::TtElse);
+    }
+
     *i -= 1;
 
     Token::TtName(String::from(&expression[start..=*i]))

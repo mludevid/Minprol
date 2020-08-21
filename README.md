@@ -11,7 +11,7 @@ It can handle `+`, `-`, `*`, `/` and `()` for I32 (`1`), I64 (`1l`), F32 (`1.0`)
 To run it you'll need the Rust compiler. You can start the interpreter by running `cargo run`.
 
 Next steps:
-- Write test functions for everything.
+- Work in progress: Write test functions for everything.
 - Improve end of line handling to later be able to accept instructions over multiple lines in files.
 - If Else
 - Loops
@@ -19,5 +19,6 @@ Next steps:
 - Improve error handeling
 
 Little improvements:
+- Try to move asigning values into math_value to be able to delete process_expression
 - Improve efficiency of blocks
 - Check that function inputs are Identifiers on declaration so it panickes then instead of when calling the funciton.

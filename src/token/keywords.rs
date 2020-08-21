@@ -2,4 +2,6 @@
 pub enum Keyword {
     TtFn,
     TtLet,
+    TtIf,
+    TtElse,
 }
